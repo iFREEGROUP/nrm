@@ -79,9 +79,10 @@ fn rewrite_dependency<'a>(
     registry: &'a str,
 ) -> Pin<Box<dyn Future<Output = anyhow::Result<Dependency>> + 'a>> {
     Box::pin(async move {
-        if dependency.resolved.is_none() {
-            return Ok(dependency);
-        }
+        match dependency.resolved {
+            Some(url) if !url.starts_with(registry) => {},
+            _ => return Ok(dependency)
+        };
 
         let manifest = fetch_package_manifest(cache, registry, &package, &dependency.version)
             .await?
