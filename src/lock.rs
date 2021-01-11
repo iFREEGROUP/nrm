@@ -79,7 +79,7 @@ fn rewrite_dependency<'a>(
     registry: &'a str,
 ) -> Pin<Box<dyn Future<Output = anyhow::Result<Dependency>> + 'a>> {
     Box::pin(async move {
-        match dependency.resolved {
+        match &dependency.resolved {
             Some(url) if !url.starts_with(registry) => {},
             _ => return Ok(dependency)
         };
