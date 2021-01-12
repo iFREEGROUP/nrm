@@ -1,6 +1,9 @@
-use crate::npm::{fetch_package_manifest, InfoCache};
+use crate::{
+    http::retry,
+    npm::{fetch_package_manifest, InfoCache},
+};
 use futures::future::try_join_all;
-use reqwest::Error;
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use ssri::IntegrityOpts;
@@ -41,8 +44,8 @@ fn is_empty_dependencies(dependencies: &Option<BTreeMap<String, Dependency>>) ->
         .unwrap_or(true)
 }
 
-async fn compute_sha1_ssri(url: &str) -> Result<String, Error> {
-    let file = reqwest::get(url).await?.bytes().await?;
+async fn compute_sha1_ssri(url: &str) -> anyhow::Result<String> {
+    let file = retry(5, || async { reqwest::get(url).await?.bytes().await }).await?;
 
     let mut integrity_opts = IntegrityOpts::new().algorithm(ssri::Sha1);
     integrity_opts.input(&file);
@@ -80,18 +83,26 @@ fn rewrite_dependency<'a>(
 ) -> Pin<Box<dyn Future<Output = anyhow::Result<Dependency>> + 'a>> {
     Box::pin(async move {
         match &dependency.resolved {
-            Some(url) if !url.starts_with(registry) => {},
-            _ => return Ok(dependency)
+            Some(url) if !url.starts_with(registry) => {}
+            _ => return Ok(dependency),
         };
 
-        let manifest = fetch_package_manifest(cache, registry, &package, &dependency.version)
-            .await?
-            .ok_or_else(|| {
+        let manifest = fetch_package_manifest(cache, registry, &package, &dependency.version).await;
+        let manifest = if let Ok(manifest) = manifest {
+            manifest.ok_or_else(|| {
                 anyhow::Error::msg(format!(
                     "{} {} cannot be found.",
                     &package, &dependency.version
                 ))
-            })?;
+            })?
+        } else {
+            error!(
+                "Failed to fetch information of {} {}, you may need to re-run this program to retry.",
+                &package,
+                &dependency.version
+            );
+            return Ok(dependency);
+        };
 
         let resolved = manifest.dist.tarball.clone();
         dependency.resolved = Some(resolved.clone());

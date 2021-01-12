@@ -1,4 +1,4 @@
-use reqwest::Error;
+use crate::http::retry;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -27,15 +27,18 @@ pub(crate) async fn fetch_package_manifest(
     registry: &str,
     package: &str,
     version: &str,
-) -> Result<Option<PackageManifest>, Error> {
+) -> anyhow::Result<Option<PackageManifest>> {
     let info = { cache.read().await.get(package).cloned() };
     let info = if let Some(info) = info {
         info
     } else {
-        let resp = reqwest::get(&format!("{}/{}", registry, package))
-            .await?
-            .json::<PackageInfo>()
-            .await?;
+        let resp = retry(5, || async {
+            reqwest::get(&format!("{}/{}", registry, package))
+                .await?
+                .json::<PackageInfo>()
+                .await
+        })
+        .await?;
         cache
             .write()
             .await
