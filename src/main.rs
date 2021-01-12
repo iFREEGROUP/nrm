@@ -29,16 +29,26 @@ async fn main() -> anyhow::Result<()> {
             println!("Updating...please wait.");
 
             nrm::update_lockfile(
-                &path.map(PathBuf::from).unwrap_or_else(|| {
-                    let mut cwd =
-                        env::current_dir().expect("failed to retrieve current working directory");
-                    cwd.push("package-lock.json");
-                    cwd
-                }),
+                &path
+                    .map(PathBuf::from)
+                    .unwrap_or_else(default_lock_file_path),
                 registry.trim_end_matches("/"),
             )
             .await
         }
-        Command::Check(_) => unimplemented!(),
+        Command::Check(Opt { registry, path }) => nrm::check_lockfile(
+            &path
+                .map(PathBuf::from)
+                .unwrap_or_else(default_lock_file_path),
+            registry.trim_end_matches("/"),
+        )
+        .await
+        .map(|_| println!("Yay! This lockfile has already used specific registry.")),
     }
+}
+
+fn default_lock_file_path() -> PathBuf {
+    let mut cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    cwd.push("package-lock.json");
+    cwd
 }

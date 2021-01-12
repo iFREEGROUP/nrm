@@ -17,3 +17,10 @@ pub async fn update_lockfile<P: AsRef<Path>>(path: P, registry: &str) -> anyhow:
 
     Ok(())
 }
+
+pub async fn check_lockfile<P: AsRef<Path>>(path: P, registry: &str) -> anyhow::Result<()> {
+    let file = fs::read(&path).await?;
+
+    let lockfile = serde_json::from_slice(&file)?;
+    lock::check_lock(&lockfile, registry).map_err(anyhow::Error::msg)
+}

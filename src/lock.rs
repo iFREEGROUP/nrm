@@ -82,10 +82,9 @@ fn rewrite_dependency<'a>(
     registry: &'a str,
 ) -> Pin<Box<dyn Future<Output = anyhow::Result<Dependency>> + 'a>> {
     Box::pin(async move {
-        match &dependency.resolved {
-            Some(url) if !url.starts_with(registry) => {}
-            _ => return Ok(dependency),
-        };
+        if is_dep_match_registry(&dependency, registry) {
+            return Ok(dependency);
+        }
 
         let manifest = fetch_package_manifest(cache, registry, &package, &dependency.version).await;
         let manifest = if let Ok(manifest) = manifest {
@@ -127,9 +126,61 @@ fn rewrite_dependency<'a>(
     })
 }
 
+pub(crate) fn check_lock(lock: &Lockfile, registry: &str) -> Result<(), &'static str> {
+    if lock.lockfile_version != 1 {
+        return Err("Only version 1 of lockfile is supported.");
+    }
+
+    let ok = lock
+        .dependencies
+        .values()
+        .all(|dep| check_dependency(dep, registry));
+    if ok {
+        Ok(())
+    } else {
+        Err("This lockfile contains some packages from other registries.")
+    }
+}
+
+fn check_dependency(dependency: &Dependency, registry: &str) -> bool {
+    if !is_dep_match_registry(&dependency, registry) {
+        return false;
+    }
+
+    dependency
+        .dependencies
+        .as_ref()
+        .map(|dependencies| {
+            dependencies
+                .values()
+                .all(|dep| check_dependency(dep, registry))
+        })
+        .unwrap_or(true)
+}
+
+#[inline]
+fn is_dep_match_registry(dependency: &Dependency, registry: &str) -> bool {
+    match &dependency.resolved {
+        Some(url) if !url.starts_with(registry) => false,
+        _ => true,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Dependency {
+        fn with_resolved(resolved: Option<String>) -> Self {
+            Self {
+                version: "1.0.0".to_string(),
+                resolved,
+                integrity: None,
+                dependencies: None,
+                i_dont_care: HashMap::new(),
+            }
+        }
+    }
 
     #[tokio::test]
     async fn test_compute_sha1_ssri() {
@@ -138,5 +189,22 @@ mod tests {
             "sha1-bm7tJgu8FHlq5QU+Y6gDxOGPfRc=",
             compute_sha1_ssri(url).await.unwrap()
         );
+    }
+
+    #[test]
+    fn test_is_dep_match_registry() {
+        assert!(is_dep_match_registry(&Dependency::with_resolved(None), ""));
+        assert!(!is_dep_match_registry(
+            &Dependency::with_resolved(Some(
+                "https://registry.npm.taobao.org/react-17.0.0.tgz".to_string()
+            )),
+            "https://registry.npmjs.org"
+        ));
+        assert!(is_dep_match_registry(
+            &Dependency::with_resolved(Some(
+                "https://registry.npmjs.org/react-17.0.0.tgz".to_string()
+            )),
+            "https://registry.npmjs.org"
+        ));
     }
 }
