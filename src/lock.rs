@@ -160,7 +160,7 @@ fn check_dependency(dependency: &Dependency, registry: &str) -> bool {
 
 #[inline]
 fn is_dep_match_registry(dependency: &Dependency, registry: &str) -> bool {
-    matches!(&dependency.resolved, Some(url) if !url.starts_with(registry))
+    !matches!(&dependency.resolved, Some(url) if !url.starts_with(registry))
 }
 
 #[cfg(test)]
