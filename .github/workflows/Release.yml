@@ -7,16 +7,26 @@ on:
 
 jobs:
   release:
-    name: Release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-gnu, x86_64-unknown-linux-musl, x86_64-apple-darwin]
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    env:
+      PLATFORM: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Compile and release
-        uses: Douile/rust-build.action@v0.1.26
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --release
+      - name: Pack
+        if: ${{ matrix.os != "windows-latest" }}
+        run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm
+      - name: Pack
+        if: ${{ matrix.os == "windows-latest" }}
+        run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm.exe
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./nrm_${{ matrix.os }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUSTTARGET: ${{ matrix.target }}
