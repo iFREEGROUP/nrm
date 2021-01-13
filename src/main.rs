@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
 
     match Command::from_args() {
         Command::Write(Opt { registry, path }) => {
-            println!("Updating...please wait.");
+            println!("Updating, please wait. This will take a few minutes, depending on your network and amount of packages.");
 
             nrm::update_lockfile(
                 &path

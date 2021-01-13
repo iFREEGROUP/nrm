@@ -595,6 +595,7 @@ dependencies = [
  "env_logger",
  "futures",
  "log",
+ "once_cell",
  "reqwest",
  "serde",
  "serde_json",
