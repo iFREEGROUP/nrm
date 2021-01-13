@@ -107,7 +107,7 @@ fn rewrite_dependency<'a>(
         dependency.resolved = Some(resolved.clone());
 
         let integrity = if let Some(integrity) = manifest.dist.integrity {
-            integrity.clone()
+            integrity
         } else {
             compute_sha1_ssri(&resolved).await?
         };
@@ -160,10 +160,7 @@ fn check_dependency(dependency: &Dependency, registry: &str) -> bool {
 
 #[inline]
 fn is_dep_match_registry(dependency: &Dependency, registry: &str) -> bool {
-    match &dependency.resolved {
-        Some(url) if !url.starts_with(registry) => false,
-        _ => true,
-    }
+    matches!(&dependency.resolved, Some(url) if !url.starts_with(registry))
 }
 
 #[cfg(test)]

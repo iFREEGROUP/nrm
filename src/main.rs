@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
                 &path
                     .map(PathBuf::from)
                     .unwrap_or_else(default_lock_file_path),
-                registry.trim_end_matches("/"),
+                registry.trim_end_matches('/'),
             )
             .await
         }
@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
             &path
                 .map(PathBuf::from)
                 .unwrap_or_else(default_lock_file_path),
-            registry.trim_end_matches("/"),
+            registry.trim_end_matches('/'),
         )
         .await
         .map(|_| println!("Yay! This lockfile has already used specific registry.")),
