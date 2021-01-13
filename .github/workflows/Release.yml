@@ -19,10 +19,10 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: Pack
-        if: ${{ matrix.os != "windows-latest" }}
+        if: ${{ matrix.os != windows-latest }}
         run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm
       - name: Pack
-        if: ${{ matrix.os == "windows-latest" }}
+        if: ${{ matrix.os == windows-latest }}
         run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm.exe
       - name: Release
         uses: softprops/action-gh-release@v1
