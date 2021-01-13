@@ -21,12 +21,17 @@ jobs:
       - name: Pack
         if: matrix.os != 'windows-latest'
         run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm
-      - name: Pack
-        if: matrix.os == 'windows-latest'
-        run: zip ./nrm_${{ matrix.os }}.zip ./target/release/nrm.exe
       - name: Release
         uses: softprops/action-gh-release@v1
+        if: matrix.os != 'windows-latest'
         with:
           files: ./nrm_${{ matrix.os }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: matrix.os == 'windows-latest'
+        with:
+          files: ./target/release/nrm.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
