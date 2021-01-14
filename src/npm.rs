@@ -1,13 +1,20 @@
 use crate::http::retry;
 use serde::Deserialize;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
-
-pub(crate) type InfoCache = RwLock<HashMap<String, PackageInfo>>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct PackageInfo {
     versions: HashMap<String, PackageManifest>,
+}
+
+impl PackageInfo {
+    pub fn get_version_manifest(&self, version: &str) -> Option<&PackageManifest> {
+        self.versions.get(version)
+    }
+
+    pub fn get_mut_version_manifest(&mut self, version: &str) -> Option<&mut PackageManifest> {
+        self.versions.get_mut(version)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -17,34 +24,19 @@ pub(crate) struct PackageManifest {
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct Dist {
-    pub shasum: String,
     pub tarball: String,
     pub integrity: Option<String>,
 }
 
-pub(crate) async fn fetch_package_manifest(
-    cache: &InfoCache,
+pub(crate) async fn fetch_package_info(
     registry: &str,
     package: &str,
-    version: &str,
-) -> anyhow::Result<Option<PackageManifest>> {
-    let info = { cache.read().await.get(package).cloned() };
-    let info = if let Some(info) = info {
-        info
-    } else {
-        let resp = retry(5, || async {
-            reqwest::get(&format!("{}/{}", registry, package))
-                .await?
-                .json::<PackageInfo>()
-                .await
-        })
-        .await?;
-        cache
-            .write()
+) -> reqwest::Result<PackageInfo> {
+    retry(5, || async {
+        reqwest::get(&format!("{}/{}", registry, package))
+            .await?
+            .json::<PackageInfo>()
             .await
-            .insert(package.to_string(), resp.clone());
-        resp
-    };
-
-    Ok(info.versions.get(version).cloned())
+    })
+    .await
 }
