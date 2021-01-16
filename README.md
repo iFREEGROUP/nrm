@@ -4,11 +4,8 @@ Utility for switching or enforcing registry of your `package-lock.json` file.
 
 ## Usage
 
-Download pre-built binary from GitHub releases page.
+Download pre-built binary from [GitHub releases](https://github.com/iFREEGROUP/nrm/releases) page.
 The command name is `nrm`.
-
-> Currently we haven't provided pre-built binaries for each platform.
-> You need to build by yourself.
 
 ### Switching registry
 
