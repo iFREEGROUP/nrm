@@ -11,9 +11,9 @@ enum Command {
 
 #[derive(StructOpt)]
 struct Opt {
-    /// Registry URL
+    /// Registry URL. Default is npm official registry.
     #[structopt(long)]
-    registry: String,
+    registry: Option<String>,
 
     /// Specify path of `package-lock.json`. Default is current directory.
     #[structopt(long)]
@@ -32,7 +32,9 @@ async fn main() -> anyhow::Result<()> {
                 &path
                     .map(PathBuf::from)
                     .unwrap_or_else(default_lock_file_path),
-                registry.trim_end_matches('/'),
+                registry
+                    .unwrap_or_else(|| String::from("https://registry.npmjs.org"))
+                    .trim_end_matches('/'),
             )
             .await
         }
@@ -40,7 +42,9 @@ async fn main() -> anyhow::Result<()> {
             &path
                 .map(PathBuf::from)
                 .unwrap_or_else(default_lock_file_path),
-            registry.trim_end_matches('/'),
+            registry
+                .unwrap_or_else(|| String::from("https://registry.npmjs.org"))
+                .trim_end_matches('/'),
         )
         .await
         .map(|_| println!("Yay! This lockfile has already used specific registry.")),

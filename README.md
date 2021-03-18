@@ -16,6 +16,8 @@ nrm write --registry <registry>
 This will update `package-lock.json` file of current directory.
 You can also specify another file by appending `--path <path>` argument.
 
+> Since v0.2, you can omit `registry` argument, and `nrm` will use npm official registry.
+
 Example:
 
 ```sh
@@ -40,6 +42,8 @@ Example:
 ```sh
 nrm check --registry https://registry.npmjs.org --path ./package-lock.json
 ```
+
+> Since v0.2, you can omit `registry` argument, and `nrm` will use npm official registry.
 
 ## License
 
